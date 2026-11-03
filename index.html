@@ -1532,6 +1532,7 @@ function showDetail(index) {
         <button class="small-btn" onclick="translateDetail()">
           초록 번역
         </button>
+        <button class="small-btn ai-action-btn" data-ai-action onclick="runAIForCurrentDetail(this)" type="button">AI 초록 번역</button>
 
         <button class="small-btn" onclick="summarizeFullText()">
           원문 PDF 분석
@@ -1958,6 +1959,132 @@ function removeSaved(index) {
 
   renderSaved();
 }
+
+
+/* 다모아 AI 연결: 논문 정보는 context로 서버에 실제 전달한다. */
+let aiRequestBusy = false;
+
+function setAIStatus(message, isError = false) {
+  const status = document.getElementById("aiStatus");
+  if (!status) return;
+  status.textContent = message;
+  status.classList.toggle("error", isError);
+}
+
+function formatPaperForAI(paper, index, abstractLimit = 1700) {
+  const abstract = cleanAbstractText(paper._abstract || paper.abstract || "");
+  return [
+    `[논문 ${index + 1}]`,
+    `제목: ${paper.title || "정보 없음"}`,
+    `저자: ${getAuthors(paper)}`,
+    `발행 연도: ${paper.publication_year || "정보 없음"}`,
+    `학술지: ${getJournal(paper)}`,
+    `언어: ${LANGUAGE_NAMES[paper.language] || paper.language || "정보 없음"}`,
+    `DOI: ${paper.doi || "정보 없음"}`,
+    `초록: ${abstract ? abstract.slice(0, abstractLimit) : "초록 정보 없음"}`
+  ].join("\n");
+}
+
+async function requestPaperAI(mode, sourcePapers, clickedButton) {
+  if (aiRequestBusy) return;
+  const chosen = (sourcePapers || []).filter(Boolean);
+  if (!chosen.length) {
+    setAIStatus("분석할 논문 자료가 없습니다. 논문을 먼저 열거나 선택해 주세요.", true);
+    return;
+  }
+  const accessCode = document.getElementById("aiAccessCode").value.trim();
+  if (!/^[A-Za-z0-9_-]{16,128}$/.test(accessCode)) {
+    setAIStatus("운영자가 안내한 앱 이용 코드를 확인해 주세요. (16~128자)", true);
+    document.getElementById("aiAccessCode").focus();
+    return;
+  }
+  if (location.protocol !== "https:" && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
+    setAIStatus("서버 기능이 배포된 HTTPS 앱 주소에서 실행해 주세요.", true);
+    return;
+  }
+
+  const target = document.getElementById("translationLanguageSelect").value;
+  const prompt = mode === "translate"
+    ? `아래 학술논문의 초록을 ${LANGUAGE_NAMES[target] || target}로 정확하고 자연스럽게 번역해 주세요. 요약하거나 내용을 추가하지 말고 원문의 문장 구조와 의미를 최대한 보존하세요. 학술 용어는 문맥에 맞게 번역하고, 제목과 번역문을 구분해 표시하세요.`
+    : "아래 선택 논문들의 실제 서지 정보와 초록을 근거로 비교 분석해 주세요. 논문별 핵심 키워드, 연구 대상·질문, 이론적 또는 분석적 관점, 연구 목적과 방향, 초록에 명시된 연구 방법·주요 주장, 공통점·차이점·상호 보완점을 구분해 설명하세요. 초록에 없는 정보는 추측하지 말고 '초록에서 확인되지 않음'이라고 표시하세요. 마지막에 함께 읽을 때 확장할 수 있는 탐구 질문을 2~3개 제안하세요. 각 분석은 어느 논문의 어떤 내용에 근거했는지 연결해 한국어로 작성하세요.";
+
+  const abstractLimit = mode === "translate" ? 5700 : 1450;
+  const context = chosen.map((paper, index) => formatPaperForAI(paper, index, abstractLimit)).join("\n\n");
+  if (!context.trim() || context.length > 5900) {
+    setAIStatus("전달할 논문 자료가 비어 있거나 너무 깁니다. 초록 길이를 줄여 다시 시도해 주세요.", true);
+    return;
+  }
+
+  aiRequestBusy = true;
+  document.querySelectorAll("[data-ai-action]").forEach(button => button.disabled = true);
+  if (clickedButton) clickedButton.textContent = mode === "translate" ? "AI 번역 중..." : "AI 비교 중...";
+  const label = document.getElementById("aiResultLabel");
+  const output = document.getElementById("aiOutput");
+  label.textContent = "실제 AI 요청 처리 중";
+  output.textContent = "선택한 논문 자료를 서버로 전달하고 있습니다.";
+  setAIStatus("AI 응답을 기다리는 중입니다.");
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 35000);
+  try {
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + accessCode
+      },
+      body: JSON.stringify({
+        messages: [{ role: "user", content: prompt }],
+        context
+      }),
+      signal: controller.signal,
+      credentials: "omit",
+      cache: "no-store",
+      redirect: "error"
+    });
+    let result;
+    try {
+      result = await response.json();
+    } catch {
+      throw new Error("서버 응답을 읽지 못했습니다. Vercel에 API 서버 파일이 배포되었는지 확인해 주세요.");
+    }
+    if (!response.ok) {
+      throw new Error(result?.error?.message || "AI 요청에 실패했습니다. 서버 설정을 확인해 주세요.");
+    }
+    if (typeof result.answer !== "string" || !result.answer.trim()) {
+      throw new Error("AI가 표시할 답변을 반환하지 않았습니다.");
+    }
+    label.textContent = "실제 AI 응답 · " + (result.model || "설정된 모델");
+    output.textContent = result.answer;
+    setAIStatus(result.truncated ? "출력 한도에 도달했습니다. 질문 범위를 줄여 다시 요청해 주세요." : "논문 자료를 바탕으로 분석을 완료했습니다.");
+  } catch (error) {
+    label.textContent = "실제 AI 응답 없음";
+    output.textContent = "응답을 받지 못했습니다. 아래 안내와 서버 설정을 확인해 주세요.";
+    setAIStatus(error.name === "AbortError" ? "응답 대기 시간이 길어 요청을 종료했습니다. 잠시 후 다시 시도해 주세요." : error.message, true);
+  } finally {
+    clearTimeout(timer);
+    aiRequestBusy = false;
+    document.querySelectorAll("[data-ai-action]").forEach(button => button.disabled = false);
+    if (clickedButton) clickedButton.textContent = mode === "translate" ? "AI 초록 번역" : "AI 관점 비교";
+  }
+}
+
+function runAIForCurrentDetail(button) {
+  if (!currentDetail) {
+    setAIStatus("먼저 논문 상세 정보를 열어 주세요.", true);
+    return;
+  }
+  requestPaperAI("translate", [currentDetail], button);
+}
+
+function runAIForSelected(button) {
+  if (selectedPapers.length < 2) {
+    setAIStatus("AI 비교를 위해 논문을 2편 이상 선택해 주세요.", true);
+    return;
+  }
+  requestPaperAI("compare", selectedPapers, button);
+}
+
 
 renderSaved();
 updateSelectedCount();
