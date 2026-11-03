@@ -1981,7 +1981,7 @@ function formatPaperForAI(paper, index, abstractLimit = 1700) {
     `학술지: ${getJournal(paper)}`,
     `언어: ${LANGUAGE_NAMES[paper.language] || paper.language || "정보 없음"}`,
     `DOI: ${paper.doi || "정보 없음"}`,
-    `초록: ${abstract ? abstract.slice(0, abstractLimit) : "초록 정보 없음"}`
+    `초록: ${abstract ? abstract.slice(0, abstractLimit) + (abstract.length > abstractLimit ? " [초록 일부 생략]" : "") : "초록 정보 없음"}`
   ].join("\n");
 }
 
@@ -2008,7 +2008,7 @@ async function requestPaperAI(mode, sourcePapers, clickedButton) {
     ? `아래 학술논문의 초록을 ${LANGUAGE_NAMES[target] || target}로 정확하고 자연스럽게 번역해 주세요. 요약하거나 내용을 추가하지 말고 원문의 문장 구조와 의미를 최대한 보존하세요. 학술 용어는 문맥에 맞게 번역하고, 제목과 번역문을 구분해 표시하세요.`
     : "아래 선택 논문들의 실제 서지 정보와 초록을 근거로 비교 분석해 주세요. 논문별 핵심 키워드, 연구 대상·질문, 이론적 또는 분석적 관점, 연구 목적과 방향, 초록에 명시된 연구 방법·주요 주장, 공통점·차이점·상호 보완점을 구분해 설명하세요. 초록에 없는 정보는 추측하지 말고 '초록에서 확인되지 않음'이라고 표시하세요. 마지막에 함께 읽을 때 확장할 수 있는 탐구 질문을 2~3개 제안하세요. 각 분석은 어느 논문의 어떤 내용에 근거했는지 연결해 한국어로 작성하세요.";
 
-  const abstractLimit = mode === "translate" ? 5700 : 1450;
+  const abstractLimit = mode === "translate" ? 5200 : 1450;
   const context = chosen.map((paper, index) => formatPaperForAI(paper, index, abstractLimit)).join("\n\n");
   if (!context.trim() || context.length > 5900) {
     setAIStatus("전달할 논문 자료가 비어 있거나 너무 깁니다. 초록 길이를 줄여 다시 시도해 주세요.", true);
@@ -2057,6 +2057,7 @@ async function requestPaperAI(mode, sourcePapers, clickedButton) {
     label.textContent = "실제 AI 응답 · " + (result.model || "설정된 모델");
     output.textContent = result.answer;
     setAIStatus(result.truncated ? "출력 한도에 도달했습니다. 질문 범위를 줄여 다시 요청해 주세요." : "논문 자료를 바탕으로 분석을 완료했습니다.");
+    document.getElementById("aiPanel").scrollIntoView({ behavior: "smooth", block: "nearest" });
   } catch (error) {
     label.textContent = "실제 AI 응답 없음";
     output.textContent = "응답을 받지 못했습니다. 아래 안내와 서버 설정을 확인해 주세요.";
@@ -2067,6 +2068,16 @@ async function requestPaperAI(mode, sourcePapers, clickedButton) {
     document.querySelectorAll("[data-ai-action]").forEach(button => button.disabled = false);
     if (clickedButton) clickedButton.textContent = mode === "translate" ? "AI 초록 번역" : "AI 관점 비교";
   }
+}
+
+
+function runAIForPaperIndex(index, button) {
+  const paper = papers[index];
+  if (!paper) {
+    setAIStatus("선택한 논문 정보를 찾을 수 없습니다. 다시 검색해 주세요.", true);
+    return;
+  }
+  requestPaperAI("translate", [paper], button);
 }
 
 function runAIForCurrentDetail(button) {
