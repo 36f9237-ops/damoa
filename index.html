@@ -1,0 +1,1930 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>다모아 | 학술자료 탐색</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --main: #438bc4;
+  --main-dark: #2f70a8;
+  --main-light: #e4f1fc;
+  --bg: #f2f8fd;
+  --text: #293746;
+  --sub: #788795;
+  --line: #dce8f1;
+  --white: #ffffff;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'Pretendard', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+button, input, select { font-family: inherit; }
+button { cursor: pointer; }
+
+header {
+  background: white;
+  border-bottom: 1px solid var(--line);
+  padding: 18px max(calc((100% - 1100px) / 2), 22px);
+}
+
+.header-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.header-brand { min-width: 0; }
+
+.saved-open-btn {
+  position: fixed;
+  top: 18px;
+  right: max(calc((100% - 1100px) / 2), 22px);
+  z-index: 60;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #b9d8ef;
+  border-radius: 9px;
+  padding: 10px 14px;
+  background: #e4f1fc;
+  color: #2f70a8;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.saved-open-btn:hover { background: #d5eafb; }
+
+.saved-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 21px;
+  height: 21px;
+  padding: 0 5px;
+  border-radius: 20px;
+  background: #438bc4;
+  color: white;
+  font-size: 11px;
+}
+
+.saved-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(29, 48, 64, .42);
+}
+
+.saved-modal.hidden { display: none !important; }
+
+.saved-modal-panel {
+  width: min(760px, 100%);
+  max-height: min(82vh, 850px);
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 1px solid #d5e5f1;
+  border-radius: 15px;
+  box-shadow: 0 18px 55px rgba(24, 49, 69, .22);
+  overflow: hidden;
+}
+
+.saved-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 21px;
+  border-bottom: 1px solid var(--line);
+}
+
+.saved-modal-header h2 { margin: 0; font-size: 19px; }
+
+.saved-close-btn {
+  border: 0;
+  border-radius: 7px;
+  padding: 7px 10px;
+  background: #edf4f9;
+  color: #536b7e;
+  font-size: 13px;
+}
+
+.saved-modal-body {
+  padding: 17px 20px 20px;
+  overflow-y: auto;
+}
+
+.saved-modal-body .result-card:last-child { margin-bottom: 0; }
+
+.logo {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--main-dark);
+  letter-spacing: -1px;
+}
+
+.header-sub {
+  color: var(--sub);
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 30px auto 100px;
+  padding: 0 22px;
+}
+
+.search-panel {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  padding: 23px;
+  margin-bottom: 25px;
+  box-shadow: 0 3px 12px rgba(75, 115, 145, 0.04);
+}
+
+.search-row {
+  display: flex;
+  gap: 9px;
+}
+
+.search-row input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #dce6ee;
+  border-radius: 9px;
+  padding: 14px;
+  font-size: 15px;
+  outline: none;
+  background: #fbfdff;
+}
+
+.search-row input:focus {
+  border-color: var(--main);
+  background: white;
+}
+
+.primary-btn {
+  border: none;
+  border-radius: 9px;
+  background: var(--main);
+  color: white;
+  padding: 0 25px;
+  font-size: 14px;
+  font-weight: 700;
+  transition: background .2s;
+}
+
+.primary-btn:hover { background: var(--main-dark); }
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 17px;
+  margin-top: 18px;
+  align-items: center;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: #586b7b;
+}
+
+.filter-item input,
+.filter-item select {
+  border: 1px solid #dce6ee;
+  border-radius: 7px;
+  padding: 8px;
+  color: var(--text);
+  background: white;
+}
+
+.filter-item input[type="number"] { width: 75px; }
+
+.filter-item select { max-width: 150px; }
+
+/* 여러 언어 선택 */
+.language-picker {
+  position: relative;
+}
+
+.language-picker summary {
+  list-style: none;
+  cursor: pointer;
+  border: 1px solid #dce6ee;
+  border-radius: 7px;
+  background: white;
+  padding: 8px 12px;
+  min-width: 125px;
+  color: #40576b;
+  font-size: 13px;
+}
+
+.language-picker summary::-webkit-details-marker {
+  display: none;
+}
+
+.language-picker summary::after {
+  content: "⌄";
+  float: right;
+  margin-left: 12px;
+  color: var(--main);
+}
+
+.language-picker[open] summary {
+  border-color: var(--main);
+}
+
+.language-options {
+  position: absolute;
+  top: calc(100% + 7px);
+  left: 0;
+  z-index: 30;
+  width: 190px;
+  padding: 12px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(40, 65, 85, 0.12);
+}
+
+.language-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 5px;
+  font-size: 13px;
+  color: #475968;
+  cursor: pointer;
+}
+
+.language-option:hover {
+  background: #eaf4fc;
+  border-radius: 6px;
+}
+
+.language-option input {
+  accent-color: var(--main);
+  width: 15px;
+  height: 15px;
+}
+
+.language-clear {
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  background: var(--main-light);
+  color: var(--main-dark);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 27px 0 14px;
+}
+
+.section-heading h2 {
+  font-size: 19px;
+  margin: 0;
+}
+
+.result-count {
+  font-size: 13px;
+  color: var(--sub);
+}
+
+.result-card {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  padding: 20px;
+  margin-bottom: 13px;
+  box-shadow: 0 2px 8px rgba(65, 95, 120, 0.025);
+}
+
+.result-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+}
+
+.result-top input {
+  margin-top: 5px;
+  accent-color: var(--main);
+  width: 15px;
+  height: 15px;
+}
+
+.paper-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.paper-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.paper-title {
+  font-size: 16px;
+  line-height: 1.55;
+  font-weight: 700;
+  color: #2d4356;
+  cursor: pointer;
+  word-break: keep-all;
+}
+
+.paper-title:hover { color: var(--main-dark); }
+
+
+.paper-meta {
+  color: var(--sub);
+  font-size: 12px;
+  line-height: 1.7;
+  margin-top: 7px;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.badge {
+  font-size: 11px;
+  color: #5b7890;
+  background: #e8f2fb;
+  padding: 4px 8px;
+  border-radius: 5px;
+}
+
+.badge.oa {
+  color: #43816a;
+  background: #eaf6ef;
+}
+
+.abstract {
+  font-size: 13px;
+  color: #596977;
+  line-height: 1.8;
+  margin: 12px 0 0;
+  padding: 0;
+  text-indent: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.card-actions,
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.small-btn {
+  display: inline-block;
+  border: 1px solid #dce6ed;
+  background: white;
+  color: #52697b;
+  border-radius: 7px;
+  padding: 8px 11px;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.small-btn:hover {
+  background: #eaf4fc;
+  border-color: #c2dced;
+}
+
+.save-paper-btn.is-saved,
+.save-paper-btn.is-saved:hover {
+  color: #ffffff;
+  background: #397fc5;
+  border-color: #397fc5;
+}
+
+.detail-panel,
+.comparison-panel {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  padding: 22px;
+  margin-top: 24px;
+}
+
+.detail-panel h2,
+.comparison-panel h2 {
+  font-size: 19px;
+  margin: 0 0 15px;
+}
+
+.detail-text {
+  font-size: 13px;
+  line-height: 1.8;
+  color: #566875;
+  margin: 0;
+  padding: 0;
+  text-indent: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.translation-box,
+.summary-box {
+  background: #e9f3fc;
+  border: 1px solid #dcebf7;
+  border-radius: 9px;
+  padding: 15px;
+  margin-top: 12px;
+  font-size: 13px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
+.translation-box {
+  white-space: normal;
+  text-indent: 0;
+}
+
+.translation-content {
+  display: block;
+  margin: 5px 0 0;
+  padding: 0;
+  text-indent: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.summary-box { white-space: pre-wrap; }
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+  margin-top: 13px;
+}
+
+th, td {
+  border: 1px solid var(--line);
+  padding: 11px;
+  text-align: left;
+  vertical-align: top;
+  line-height: 1.7;
+  min-width: 150px;
+}
+
+th {
+  background: #e8f2fb;
+  font-weight: 700;
+}
+
+.table-wrap { overflow-x: auto; }
+
+.empty {
+  text-align: center;
+  padding: 38px 12px;
+  color: var(--sub);
+  font-size: 13px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  line-height: 1.8;
+}
+
+.loading {
+  text-align: center;
+  color: var(--sub);
+  padding: 28px;
+  font-size: 13px;
+}
+
+.notice {
+  color: var(--sub);
+  font-size: 12px;
+  line-height: 1.7;
+  margin-top: 12px;
+}
+
+.hidden { display: none !important; }
+
+/* 하단 논문 비교 바 */
+.compare-dock {
+  position: sticky;
+  bottom: 12px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  max-width: 1056px;
+  margin: 25px auto 0;
+  padding: 12px 17px;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid #dce6ed;
+  border-radius: 11px;
+  box-shadow: 0 3px 14px rgba(35, 55, 75, 0.08);
+}
+
+.compare-count {
+  color: #626f7b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.dock-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.compare-dock .small-btn {
+  background: #f0f6fb;
+  border-color: #dce8f1;
+  color: #687987;
+}
+
+.compare-dock .compare-btn {
+  background: #5689b5;
+  color: white;
+  border: none;
+  border-radius: 7px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.compare-dock .compare-btn:hover { background: #3f75a4; }
+
+.compare-dock .compare-btn:disabled {
+  background: #cbd6de;
+  cursor: not-allowed;
+}
+
+@media (max-width: 650px) {
+  .container {
+    padding: 0 13px;
+    margin-top: 20px;
+  }
+
+  header { padding: 15px; }
+  .header-inner { gap: 8px; }
+  .logo { font-size: 25px; }
+  .header-sub { font-size: 11px; }
+  .saved-open-btn { top: 12px; right: 12px; padding: 9px 10px; font-size: 12px; }
+
+  .search-panel { padding: 16px; }
+
+  .search-row { flex-direction: column; }
+
+  .search-row .primary-btn { padding: 13px; }
+
+  .filters { gap: 13px; }
+
+  .paper-title-row {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .compare-dock {
+    padding: 11px;
+    gap: 7px;
+  }
+
+  .dock-actions { gap: 5px; }
+
+  .compare-dock .compare-btn { padding: 9px 11px; }
+
+  .language-options { width: 180px; }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-brand">
+      <div class="logo">다모아</div>
+      <div class="header-sub">필요한 학술자료를 찾고, 비교하고, 활용하는 공간</div>
+    </div>
+    <button class="saved-open-btn" type="button" onclick="openSavedModal()">
+      저장한 논문 <span class="saved-count" id="savedCount">0</span>
+    </button>
+  </div>
+</header>
+
+<div class="saved-modal hidden" id="savedModal" onclick="handleSavedModalBackdrop(event)">
+  <section class="saved-modal-panel" role="dialog" aria-modal="true" aria-labelledby="savedModalTitle">
+    <div class="saved-modal-header">
+      <h2 id="savedModalTitle">저장한 논문</h2>
+      <button class="saved-close-btn" type="button" onclick="closeSavedModal()">닫기 ✕</button>
+    </div>
+    <div class="saved-modal-body">
+      <div id="savedList">
+        <div class="empty">저장한 논문이 없습니다.</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<main class="container">
+
+  <section class="search-panel">
+    <div class="search-row">
+      <input
+        id="searchInput"
+        type="text"
+        placeholder="찾고 싶은 주제나 키워드를 입력하세요."
+        onkeydown="if(event.key==='Enter') searchPapers()"
+      >
+      <button class="primary-btn" onclick="searchPapers()">논문 검색</button>
+    </div>
+
+    <div class="filters">
+
+      <div class="filter-item">
+        <label>발행 연도</label>
+        <input type="number" id="yearFrom" placeholder="시작">
+        <span>~</span>
+        <input type="number" id="yearTo" placeholder="종료">
+      </div>
+
+      <div class="filter-item">
+        <label>정렬</label>
+        <select id="sortSelect">
+          <option value="relevance_score:desc">관련도순</option>
+          <option value="publication_year:desc">최신순</option>
+        </select>
+      </div>
+
+      <div class="filter-item">
+        <label>논문 언어</label>
+
+        <details class="language-picker" id="languagePicker">
+          <summary id="languageSummary">전체 언어</summary>
+
+          <div class="language-options">
+
+            <label class="language-option">
+              <input type="checkbox" name="paperLanguage" value="ko" onchange="updateLanguageSummary()">
+              한국어
+            </label>
+
+            <label class="language-option">
+              <input type="checkbox" name="paperLanguage" value="en" onchange="updateLanguageSummary()">
+              영어
+            </label>
+
+            <label class="language-option">
+              <input type="checkbox" name="paperLanguage" value="fr" onchange="updateLanguageSummary()">
+              프랑스어
+            </label>
+
+            <label class="language-option">
+              <input type="checkbox" name="paperLanguage" value="de" onchange="updateLanguageSummary()">
+              독일어
+            </label>
+
+            <label class="language-option">
+              <input type="checkbox" name="paperLanguage" value="es" onchange="updateLanguageSummary()">
+              스페인어
+            </label>
+
+            <label class="language-option">
+              <input type="checkbox" name="paperLanguage" value="ja" onchange="updateLanguageSummary()">
+              일본어
+            </label>
+
+            <label class="language-option">
+              <input type="checkbox" name="paperLanguage" value="zh" onchange="updateLanguageSummary()">
+              중국어
+            </label>
+
+            <button class="language-clear" onclick="clearLanguageSelection()" type="button">
+              전체 언어로 검색
+            </button>
+
+          </div>
+        </details>
+      </div>
+
+      <div class="filter-item">
+        <label>번역 언어</label>
+        <select id="translationLanguageSelect">
+          <option value="ko">한국어</option>
+          <option value="en">영어</option>
+          <option value="fr">프랑스어</option>
+          <option value="de">독일어</option>
+          <option value="es">스페인어</option>
+          <option value="ja">일본어</option>
+          <option value="zh">중국어</option>
+        </select>
+      </div>
+
+      <div class="filter-item">
+        <label>
+          <input type="checkbox" id="oaOnly">
+          원문 공개 논문만
+        </label>
+      </div>
+
+    </div>
+  </section>
+
+  <section id="resultsSection">
+
+    <div class="section-heading">
+      <h2>검색 결과</h2>
+      <span class="result-count" id="resultCount">검색 결과가 여기에 표시됩니다.</span>
+    </div>
+
+    <div id="results">
+      <div class="empty">검색어를 입력해 논문을 찾아보세요.</div>
+    </div>
+
+    <div class="compare-dock" id="compareDock">
+      <div class="compare-count" id="selectedCount">선택한 논문 0편</div>
+
+      <div class="dock-actions">
+        <button class="small-btn" onclick="clearSelection()">선택 해제</button>
+        <button
+          class="compare-btn"
+          id="compareButton"
+          onclick="compareSelected()"
+          disabled
+        >
+          선택 논문 비교
+        </button>
+      </div>
+    </div>
+
+  </section>
+
+  <section id="detailSection"></section>
+  <section id="comparisonSection"></section>
+
+
+</main>
+
+<script>
+
+/* OpenAlex API 키가 필요한 경우 직접 입력하세요.
+   웹사이트를 공개하면 브라우저에서 키가 노출될 수 있습니다. */
+const OPENALEX_API_KEY = "";
+
+const OPENALEX_URL = "https://api.openalex.org/works";
+
+const LANGUAGE_NAMES = {
+  ko: "한국어",
+  en: "영어",
+  fr: "프랑스어",
+  de: "독일어",
+  es: "스페인어",
+  ja: "일본어",
+  zh: "중국어"
+};
+
+const SUPPORTED_LANGUAGES = ["ko", "en", "fr", "de", "es", "ja", "zh"];
+
+let papers = [];
+let selectedPapers = [];
+let currentDetail = null;
+
+/* 선택한 언어 가져오기.
+   아무것도 선택하지 않으면 전체 언어로 처리한다. */
+function getSelectedLanguages() {
+  return [...document.querySelectorAll('input[name="paperLanguage"]:checked')]
+    .map(input => input.value);
+}
+
+function updateLanguageSummary() {
+  const selected = getSelectedLanguages();
+  const summary = document.getElementById("languageSummary");
+
+  if (selected.length === 0) {
+    summary.textContent = "전체 언어";
+  } else if (selected.length === 1) {
+    summary.textContent = LANGUAGE_NAMES[selected[0]];
+  } else {
+    summary.textContent =
+      `${LANGUAGE_NAMES[selected[0]]} 외 ${selected.length - 1}개`;
+  }
+}
+
+function clearLanguageSelection() {
+  document.querySelectorAll('input[name="paperLanguage"]')
+    .forEach(input => input.checked = false);
+
+  updateLanguageSummary();
+}
+
+/* 초록 텍스트 정리: 앞쪽 공백·줄바꿈·제로폭 문자를 제거 */
+function cleanAbstractText(text) {
+  return String(text || "")
+    .normalize("NFKC")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .replace(/[\s\u00A0]+/g, " ")
+    .replace(/\s+([,.;:!?。！？])/g, "$1")
+    .trim();
+}
+
+/* OpenAlex의 역색인 초록을 일반 문장으로 복원 */
+function decodeAbstract(invertedIndex) {
+  if (!invertedIndex) return "";
+
+  const words = [];
+
+  Object.entries(invertedIndex).forEach(([word, positions]) => {
+    const token = cleanAbstractText(word);
+    if (!token) return;
+
+    positions.forEach(position => {
+      words[position] = token;
+    });
+  });
+
+  return cleanAbstractText(
+    words
+      .filter(word => typeof word === "string" && word.trim())
+      .join(" ")
+  );
+}
+
+/* 마지막 문장이 미완성이면 마지막 완성 문장까지만 남긴다. */
+function trimIncompleteLastSentence(text) {
+  const cleaned = cleanAbstractText(text);
+  if (!cleaned) return "";
+
+  if (/[.!?。！？]["'’”)]?\s*$/.test(cleaned)) {
+    return cleaned;
+  }
+
+  const matches = [
+    ...cleaned.matchAll(/[.!?。！？]["'’”)]?(?=\s|$)/g)
+  ];
+
+  if (matches.length === 0) return "";
+
+  const lastMatch = matches[matches.length - 1];
+
+  return cleanAbstractText(
+    cleaned.slice(0, lastMatch.index + lastMatch[0].length)
+  );
+}
+
+function getAbstract(work) {
+  return trimIncompleteLastSentence(
+    decodeAbstract(work.abstract_inverted_index)
+  );
+}
+
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  })[char]);
+}
+
+function getAuthors(work) {
+  return (work.authorships || [])
+    .slice(0, 5)
+    .map(item => item.author?.display_name || "")
+    .filter(Boolean)
+    .join(", ") || "저자 정보 없음";
+}
+
+function getJournal(work) {
+  return work.primary_location?.source?.display_name || "학술지 정보 없음";
+}
+
+/* 원문을 제공하는 사이트의 주소 가져오기 */
+function getOriginalUrl(work) {
+  return (
+    work.best_oa_location?.landing_page_url ||
+    work.primary_location?.landing_page_url ||
+    work.locations?.find(location => location.landing_page_url)?.landing_page_url ||
+    (work.doi ? `https://doi.org/${work.doi}` : "") ||
+    work.id ||
+    ""
+  );
+}
+
+/* PDF 주소 가져오기 */
+function getPdfUrl(work) {
+  return (
+    work.best_oa_location?.pdf_url ||
+    work.primary_location?.pdf_url ||
+    work.locations?.find(location => location.pdf_url)?.pdf_url ||
+    ""
+  );
+}
+
+/* 번역된 검색어 생성 */
+/* Google 번역을 우선 사용하고, 실패하면 글자 수 제한에 맞춰 MyMemory로 재시도한다. */
+function splitTranslationText(text, maxLength = 450) {
+  const parts = [];
+  let remaining = String(text || '').trim();
+
+  while (remaining.length > maxLength) {
+    let splitAt = remaining.lastIndexOf(' ', maxLength);
+    const sentenceBreak = Math.max(
+      remaining.lastIndexOf('. ', maxLength),
+      remaining.lastIndexOf('? ', maxLength),
+      remaining.lastIndexOf('! ', maxLength),
+      remaining.lastIndexOf('。', maxLength),
+      remaining.lastIndexOf('\n', maxLength)
+    );
+    if (sentenceBreak > maxLength * 0.55) splitAt = sentenceBreak + 1;
+    if (splitAt < maxLength * 0.45) splitAt = maxLength;
+
+    const piece = remaining.slice(0, splitAt).trim();
+    if (piece) parts.push(piece);
+    remaining = remaining.slice(splitAt).trim();
+  }
+
+  if (remaining) parts.push(remaining);
+  return parts;
+}
+
+async function requestGoogleTranslation(text, target) {
+  const params = new URLSearchParams({
+    client: 'gtx',
+    sl: 'auto',
+    tl: target,
+    dt: 't',
+    q: text
+  });
+  const response = await fetch(
+    'https://translate.googleapis.com/translate_a/single?' + params.toString(),
+    { method: 'GET' }
+  );
+  if (!response.ok) throw new Error(`Google 번역 응답 오류 (${response.status})`);
+
+  const data = await response.json();
+  const result = Array.isArray(data?.[0])
+    ? data[0].map(part => Array.isArray(part) ? (part[0] || '') : '').join('').trim()
+    : '';
+  if (!result) throw new Error('Google 번역 결과가 비어 있습니다.');
+  return result;
+}
+
+async function requestMyMemoryTranslation(text, target) {
+  // MyMemory는 요청 길이가 길면 실패할 수 있어 450자 이하로 요청한다.
+  const params = new URLSearchParams({
+    q: text,
+    langpair: `autodetect|${target}`
+  });
+  const response = await fetch(
+    'https://api.mymemory.translated.net/get?' + params.toString(),
+    { method: 'GET' }
+  );
+  if (!response.ok) throw new Error(`대체 번역 서비스 응답 오류 (${response.status})`);
+
+  const data = await response.json();
+  if (Number(data.responseStatus) !== 200 || !data.responseData?.translatedText) {
+    const detail = data.responseDetails || '번역 결과를 가져오지 못했습니다.';
+    throw new Error(detail);
+  }
+
+  let result = String(data.responseData.translatedText).trim();
+  // MyMemory가 HTML 엔티티를 반환하는 경우 화면에 정상적으로 표시한다.
+  const decoder = document.createElement('textarea');
+  decoder.innerHTML = result;
+  result = decoder.value.trim();
+  if (!result) throw new Error('대체 번역 결과가 비어 있습니다.');
+  return result;
+}
+
+function normalizeTranslationOutput(text) {
+  return String(text || "")
+    .normalize("NFKC")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .replace(/[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g, " ")
+    .replace(/^[\s\uFEFF\u200B]+/, "")
+    .replace(/[\t ]+/g, " ")
+    .replace(/\s+([,.;:!?。！？])/g, "$1")
+    .trim();
+}
+
+async function translateOne(text, source, target) {
+  const input = String(text || '').replace(/\u0000/g, '').trim();
+  if (!input) throw new Error('번역할 텍스트가 없습니다.');
+  if (!target) throw new Error('번역 언어를 선택해 주세요.');
+  if (source && source !== 'auto' && source === target) return input;
+
+  // 두 서비스 모두 긴 요청에서 실패하지 않도록 짧은 단위로 나눈다.
+  const chunks = splitTranslationText(input, 450);
+  const translated = [];
+
+  for (const chunk of chunks) {
+    let translatedChunk = '';
+    let googleError = null;
+
+    try {
+      translatedChunk = await requestGoogleTranslation(chunk, target);
+    } catch (error) {
+      googleError = error;
+    }
+
+    if (!translatedChunk) {
+      try {
+        translatedChunk = await requestMyMemoryTranslation(chunk, target);
+      } catch (fallbackError) {
+        throw new Error(
+          `번역 서비스에 연결하지 못했습니다. (${googleError?.message || '첫 번째 서비스 오류'} / ${fallbackError.message || '대체 서비스 오류'})`
+        );
+      }
+    }
+
+    translated.push(normalizeTranslationOutput(translatedChunk));
+  }
+
+  const output = normalizeTranslationOutput(translated.join(' '));
+  if (!output) throw new Error('번역 결과가 비어 있습니다.');
+  return output;
+}
+
+/* 선택된 언어에 맞는 검색어만 생성한다.
+   예: 한국어 + 영어 선택 시 한국어 검색어와 영어 번역어만 사용 */
+async function makeSearchTerms(keyword, selectedLanguages) {
+  const languages = selectedLanguages.length
+    ? selectedLanguages
+    : SUPPORTED_LANGUAGES;
+
+  const terms = [];
+
+  for (const language of languages) {
+    if (language === "ko") {
+      terms.push({
+        text: keyword,
+        language: "ko"
+      });
+      continue;
+    }
+
+    try {
+      const translated = await translateOne(keyword, "ko", language);
+
+      if (translated.trim()) {
+        terms.push({
+          text: translated,
+          language
+        });
+      }
+    } catch (error) {
+      console.warn(`${language} 검색어 번역 실패:`, error);
+    }
+  }
+
+  return terms;
+}
+
+/* 논문 검색 */
+async function searchPapers() {
+  const keyword = document.getElementById("searchInput").value.trim();
+
+  if (!keyword) {
+    alert("검색어를 입력해 주세요.");
+    return;
+  }
+
+  const resultsBox = document.getElementById("results");
+
+  resultsBox.innerHTML =
+    '<div class="loading">논문을 검색하고 있습니다...</div>';
+
+  document.getElementById("resultCount").textContent = "";
+
+  selectedPapers = [];
+  updateSelectedCount();
+
+  document.getElementById("detailSection").innerHTML = "";
+  document.getElementById("comparisonSection").innerHTML = "";
+
+  try {
+    const selectedLanguages = getSelectedLanguages();
+
+    const searchTerms = await makeSearchTerms(
+      keyword,
+      selectedLanguages
+    );
+
+    if (!searchTerms.length) {
+      throw new Error("검색어를 번역하지 못했습니다. 다시 시도해 주세요.");
+    }
+
+    const from = document.getElementById("yearFrom").value;
+    const to = document.getElementById("yearTo").value;
+    const sort = document.getElementById("sortSelect").value;
+    const oaOnly = document.getElementById("oaOnly").checked;
+
+    const filterParts = [];
+
+    if (from) {
+      filterParts.push(`from_publication_date:${from}-01-01`);
+    }
+
+    if (to) {
+      filterParts.push(`to_publication_date:${to}-12-31`);
+    }
+
+    /*
+      여러 언어를 선택하면 OR 조건으로 필터링한다.
+      예: language:ko|en
+      아무것도 선택하지 않으면 언어 필터를 적용하지 않는다.
+    */
+    if (selectedLanguages.length > 0) {
+      filterParts.push(
+        `language:${selectedLanguages.join("|")}`
+      );
+    }
+
+    if (oaOnly) {
+      filterParts.push("is_oa:true");
+    }
+
+    const allWorks = new Map();
+
+    /*
+      선택된 각 언어로 번역한 검색어를 사용해 검색한다.
+      모든 요청에 선택한 언어 필터를 공통으로 적용한다.
+    */
+    for (const term of searchTerms) {
+      const params = new URLSearchParams({
+        search: term.text,
+        per_page: "20",
+        sort,
+        select: [
+          "id",
+          "doi",
+          "title",
+          "authorships",
+          "publication_year",
+          "primary_location",
+          "locations",
+          "abstract_inverted_index",
+          "type",
+          "open_access",
+          "best_oa_location",
+          "language",
+          "ids"
+        ].join(",")
+      });
+
+      if (OPENALEX_API_KEY) {
+        params.set("api_key", OPENALEX_API_KEY);
+      }
+
+      if (filterParts.length) {
+        params.set("filter", filterParts.join(","));
+      }
+
+      const response = await fetch(
+        `${OPENALEX_URL}?${params.toString()}`
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          "OpenAlex 검색에 실패했습니다. 잠시 후 다시 시도해 주세요."
+        );
+      }
+
+      const data = await response.json();
+
+      (data.results || []).forEach(work => {
+        allWorks.set(work.id, work);
+      });
+    }
+
+    papers = [...allWorks.values()]
+
+      /* API 필터 이후에도 선택 언어를 한 번 더 확인 */
+      .filter(work => {
+        if (selectedLanguages.length === 0) return true;
+        return selectedLanguages.includes(work.language);
+      })
+
+      .map(work => ({
+        ...work,
+        _abstract: getAbstract(work)
+      }))
+
+      /* 정렬은 OpenAlex가 제공하는 관련도순 또는 발행 연도순을 사용한다. */
+      .sort((a, b) => {
+        if (sort === "publication_year:desc") {
+          return (b.publication_year || 0) -
+                 (a.publication_year || 0);
+        }
+        return 0;
+      })
+
+      .slice(0, 40);
+
+    renderResults();
+
+  } catch (error) {
+    resultsBox.innerHTML = `
+      <div class="empty">${escapeHTML(error.message)}</div>
+    `;
+  }
+}
+
+/* 검색 결과 표시 */
+function renderResults() {
+  const resultsBox = document.getElementById("results");
+
+  document.getElementById("resultCount").textContent =
+    `총 ${papers.length}편`;
+
+  if (!papers.length) {
+    resultsBox.innerHTML = `
+      <div class="empty">
+        검색 결과가 없습니다.<br>
+        검색어를 바꾸거나 논문 언어 및 발행 연도 조건을 확인해 보세요.
+      </div>
+    `;
+    return;
+  }
+
+  resultsBox.innerHTML = papers.map((work, index) => {
+    const id = escapeHTML(work.id);
+    const isSelected = selectedPapers.some(
+      paper => paper.id === work.id
+    );
+
+    const isOA = work.open_access?.is_oa;
+    const originalUrl = getOriginalUrl(work);
+
+    return `
+      <article class="result-card">
+
+        <div class="result-top">
+
+          <input
+            type="checkbox"
+            ${isSelected ? "checked" : ""}
+            onchange="toggleSelection('${id}', this.checked)"
+          >
+
+          <div class="paper-main">
+
+            <div class="paper-title-row">
+              <div class="paper-title" onclick="showDetail(${index})">
+                ${escapeHTML(work.title || "제목 정보 없음")}
+              </div>
+            </div>
+
+            <div class="paper-meta">
+              ${escapeHTML(getAuthors(work))}<br>
+              ${escapeHTML(String(work.publication_year || "연도 정보 없음"))}
+              · ${escapeHTML(getJournal(work))}
+            </div>
+
+            <div class="badges">
+              <span class="badge">
+                ${escapeHTML(work.type || "자료 유형 미상")}
+              </span>
+
+              ${isOA ? '<span class="badge oa">원문 공개</span>' : ""}
+
+              ${work.language
+                ? `<span class="badge">${escapeHTML(LANGUAGE_NAMES[work.language] || work.language)}</span>`
+                : ""}
+            </div>
+
+            <div class="abstract">
+              ${escapeHTML(work._abstract || "초록 정보가 제공되지 않습니다.")}
+            </div>
+
+            <div class="card-actions">
+              <button class="small-btn" onclick="showDetail(${index})">
+                상세 보기
+              </button>
+
+              <button class="small-btn" onclick="translateAbstract(${index}, this)">
+                초록 번역
+              </button>
+
+              <button
+                class="small-btn save-paper-btn ${isPaperSaved(work.id) ? "is-saved" : ""}"
+                data-save-paper-id="${escapeHTML(work.id)}"
+                onclick="savePaper(${index}, this)"
+                type="button"
+              >
+                ${isPaperSaved(work.id) ? "저장됨" : "논문 저장"}
+              </button>
+
+              ${originalUrl ? `
+                <a class="small-btn"
+                   href="${escapeHTML(originalUrl)}"
+                   target="_blank"
+                   rel="noopener noreferrer">
+                  원문 사이트
+                </a>
+              ` : ""}
+            </div>
+
+            <div id="translation-${index}"></div>
+
+          </div>
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
+/* 논문 선택 및 비교 */
+function toggleSelection(id, checked) {
+  const work = papers.find(paper => paper.id === id);
+  if (!work) return;
+
+  if (checked) {
+    if (selectedPapers.length >= 3) {
+      alert("논문은 최대 3편까지 비교할 수 있습니다.");
+      renderResults();
+      return;
+    }
+
+    if (!selectedPapers.some(paper => paper.id === id)) {
+      selectedPapers.push(work);
+    }
+  } else {
+    selectedPapers = selectedPapers.filter(
+      paper => paper.id !== id
+    );
+  }
+
+  updateSelectedCount();
+}
+
+function updateSelectedCount() {
+  document.getElementById("selectedCount").textContent =
+    `선택한 논문 ${selectedPapers.length}편`;
+
+  document.getElementById("compareButton").disabled =
+    selectedPapers.length < 2;
+}
+
+function clearSelection() {
+  selectedPapers = [];
+  updateSelectedCount();
+  renderResults();
+}
+
+function compareSelected() {
+  if (selectedPapers.length < 2) {
+    alert("비교할 논문을 2편 이상 선택해 주세요.");
+    return;
+  }
+
+  const rows = [
+    ["제목", paper => paper.title || "정보 없음"],
+    ["저자", paper => getAuthors(paper)],
+    ["발행 연도", paper => paper.publication_year || "정보 없음"],
+    ["학술지", paper => getJournal(paper)],
+    ["자료 유형", paper => paper.type || "정보 없음"],
+    ["언어", paper => LANGUAGE_NAMES[paper.language] || paper.language || "정보 없음"],
+    ["초록", paper => paper._abstract || "초록 정보 없음"]
+  ];
+
+  let html = `
+    <div class="comparison-panel">
+      <h2>선택 논문 비교</h2>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>비교 항목</th>
+              ${selectedPapers.map(paper => `
+                <th>${escapeHTML(paper.title || "제목 없음")}</th>
+              `).join("")}
+            </tr>
+          </thead>
+
+          <tbody>
+  `;
+
+  rows.forEach(([label, getter]) => {
+    html += `
+      <tr>
+        <th>${escapeHTML(label)}</th>
+        ${selectedPapers.map(paper => `
+          <td>${escapeHTML(getter(paper))}</td>
+        `).join("")}
+      </tr>
+    `;
+  });
+
+  html += `
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("comparisonSection").innerHTML = html;
+
+  document.getElementById("comparisonSection").scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
+/* 논문 상세 보기 */
+function showDetail(index) {
+  const work = papers[index];
+  if (!work) return;
+
+  currentDetail = work;
+
+  const originalUrl = getOriginalUrl(work);
+
+  document.getElementById("detailSection").innerHTML = `
+    <div class="detail-panel">
+
+      <h2>논문 상세 정보</h2>
+
+      <h3>${escapeHTML(work.title || "제목 정보 없음")}</h3>
+
+      <div class="paper-meta">
+        ${escapeHTML(getAuthors(work))}<br>
+        ${escapeHTML(String(work.publication_year || "연도 정보 없음"))}
+        · ${escapeHTML(getJournal(work))}
+      </div>
+
+      <div class="detail-actions">
+        <button class="small-btn" onclick="translateDetail()">
+          초록 번역
+        </button>
+
+        <button class="small-btn" onclick="summarizeFullText()">
+          원문 PDF 분석
+        </button>
+
+        <button
+          class="small-btn save-paper-btn ${isPaperSaved(work.id) ? "is-saved" : ""}"
+          data-save-paper-id="${escapeHTML(work.id)}"
+          onclick="saveCurrentDetail(this)"
+          type="button"
+        >
+          ${isPaperSaved(work.id) ? "저장됨" : "논문 저장"}
+        </button>
+
+        ${originalUrl ? `
+          <a class="small-btn"
+             href="${escapeHTML(originalUrl)}"
+             target="_blank"
+             rel="noopener noreferrer">
+            원문 사이트
+          </a>
+        ` : ""}
+      </div>
+
+      <h3>초록</h3>
+
+      <div class="detail-text">
+        ${escapeHTML(work._abstract || "초록 정보가 없습니다.")}
+      </div>
+
+      <div id="detailTranslation"></div>
+      <div id="pdfSummary"></div>
+
+    </div>
+  `;
+
+  document.getElementById("detailSection").scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
+/* 초록 번역 */
+async function translateAbstract(index, button) {
+  const work = papers[index];
+  const output = document.getElementById(`translation-${index}`);
+
+  if (!work._abstract) {
+    output.innerHTML =
+      '<div class="translation-box">번역할 초록이 없습니다.</div>';
+    return;
+  }
+
+  const target =
+    document.getElementById("translationLanguageSelect").value;
+
+  button.disabled = true;
+  button.textContent = "번역 중...";
+
+  try {
+    const translated = await translateText(
+      work._abstract,
+      target,
+      "auto"
+    );
+
+    output.innerHTML = `
+      <div class="translation-box">
+        <strong>번역 결과</strong>
+        <div class="translation-content">${escapeHTML(normalizeTranslationOutput(translated))}</div>
+      </div>
+    `;
+
+  } catch (error) {
+    output.innerHTML = `
+      <div class="translation-box">
+        번역에 실패했습니다: ${escapeHTML(error.message || "인터넷 연결이나 번역 서비스 상태를 확인해 주세요.")}
+      </div>
+    `;
+  } finally {
+    button.disabled = false;
+    button.textContent = "초록 번역";
+  }
+}
+
+async function translateText(text, target, source = "auto") {
+  const cleanedText = cleanAbstractText(text);
+  if (!cleanedText) return "";
+  if (source !== "auto" && source === target) {
+    return normalizeTranslationOutput(cleanedText);
+  }
+  return normalizeTranslationOutput(
+    await translateOne(cleanedText, source, target)
+  );
+}
+
+async function translateDetail() {
+  if (!currentDetail) return;
+
+  const output = document.getElementById("detailTranslation");
+
+  const target =
+    document.getElementById("translationLanguageSelect").value;
+
+  output.innerHTML =
+    '<div class="translation-box">번역 중...</div>';
+
+  try {
+    const translated = await translateText(
+      currentDetail._abstract,
+      target,
+      "auto"
+    );
+
+    output.innerHTML = `
+      <div class="translation-box">
+        <strong>번역 결과</strong>
+        <div class="translation-content">${escapeHTML(normalizeTranslationOutput(translated))}</div>
+      </div>
+    `;
+
+  } catch (error) {
+    output.innerHTML = `
+      <div class="translation-box">
+        번역에 실패했습니다: ${escapeHTML(error.message || "인터넷 연결이나 번역 서비스 상태를 확인해 주세요.")}
+      </div>
+    `;
+  }
+}
+
+/* PDF 원문 가져오기 및 텍스트 추출 */
+async function summarizeFullText() {
+  if (!currentDetail) return;
+
+  const output = document.getElementById("pdfSummary");
+
+  output.innerHTML =
+    '<div class="summary-box">원문 PDF를 확인하고 있습니다...</div>';
+
+  const pdfUrl = getPdfUrl(currentDetail);
+
+  if (!pdfUrl) {
+    output.innerHTML = `
+      <div class="summary-box">
+        공개된 PDF 주소를 찾지 못했습니다.<br>
+        원문 사이트에서 PDF 공개 여부를 확인해 주세요.
+      </div>
+    `;
+    return;
+  }
+
+  try {
+    const loadingTask = pdfjsLib.getDocument({
+      url: pdfUrl,
+      withCredentials: false
+    });
+
+    const pdf = await loadingTask.promise;
+    let fullText = "";
+
+    const pageLimit = Math.min(pdf.numPages, 35);
+
+    for (let pageNumber = 1; pageNumber <= pageLimit; pageNumber++) {
+      const page = await pdf.getPage(pageNumber);
+      const content = await page.getTextContent();
+
+      fullText += content.items.map(item => item.str).join(" ") + "\n";
+    }
+
+    fullText = cleanAbstractText(fullText);
+
+    if (!fullText) {
+      throw new Error("PDF에서 텍스트를 추출하지 못했습니다.");
+    }
+
+    const summary = extractiveSummary(fullText);
+
+    output.innerHTML = `
+      <div class="summary-box">
+        <strong>PDF 원문에서 추출한 내용</strong><br>
+        ${escapeHTML(summary)}
+
+        <p class="notice">
+          PDF의 앞부분 ${pageLimit}쪽에서 텍스트를 추출해 핵심 문장을 선별한 결과입니다.
+          AI가 논문의 전체 내용을 이해해 작성한 요약은 아닙니다.
+        </p>
+      </div>
+    `;
+
+  } catch (error) {
+    output.innerHTML = `
+      <div class="summary-box">
+        PDF를 불러오지 못했습니다. 원문 공개 설정이나 외부 사이트의 접근 제한을 확인해 주세요.
+      </div>
+    `;
+  }
+}
+
+function extractiveSummary(text) {
+  const sentences = text
+    .split(/(?<=[.!?])\s+/)
+    .map(sentence => sentence.trim())
+    .filter(sentence => sentence.length > 40);
+
+  return sentences.slice(0, 8).join("\n\n") ||
+    "추출된 문장에서 요약할 내용을 찾지 못했습니다.";
+}
+
+/* 저장 기능 */
+function getSavedPapers() {
+  try {
+    return JSON.parse(
+      localStorage.getItem("damoaSavedPapers") || "[]"
+    );
+  } catch {
+    return [];
+  }
+}
+
+function isPaperSaved(paperId) {
+  return getSavedPapers().some(paper => paper.id === paperId);
+}
+
+function updateSaveButton(button, isSaved) {
+  if (!button) return;
+  button.classList.toggle("is-saved", isSaved);
+  button.textContent = isSaved ? "저장됨" : "논문 저장";
+}
+
+function updateAllSaveButtons() {
+  document.querySelectorAll("[data-save-paper-id]").forEach(button => {
+    updateSaveButton(button, isPaperSaved(button.dataset.savePaperId));
+  });
+}
+
+function savePaper(index, button) {
+  const work = papers[index];
+  if (work) saveWork(work, button);
+}
+
+function saveCurrentDetail(button) {
+  if (currentDetail) saveWork(currentDetail, button);
+}
+
+function saveWork(work, button) {
+  const saved = getSavedPapers();
+
+  if (saved.some(paper => paper.id === work.id)) {
+    updateSaveButton(button, true);
+    return;
+  }
+
+  saved.push({
+    id: work.id,
+    title: work.title,
+    authorships: work.authorships,
+    publication_year: work.publication_year,
+    primary_location: work.primary_location,
+    locations: work.locations,
+    best_oa_location: work.best_oa_location,
+    abstract_inverted_index: work.abstract_inverted_index,
+    abstract: work._abstract,
+    type: work.type,
+    language: work.language,
+    open_access: work.open_access,
+    doi: work.doi
+  });
+
+  localStorage.setItem(
+    "damoaSavedPapers",
+    JSON.stringify(saved)
+  );
+
+  renderSaved();
+  updateAllSaveButtons();
+}
+
+function openSavedModal() {
+  renderSaved();
+  const modal = document.getElementById("savedModal");
+  modal.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+}
+
+function closeSavedModal() {
+  const modal = document.getElementById("savedModal");
+  modal.classList.add("hidden");
+  document.body.style.overflow = "";
+}
+
+function handleSavedModalBackdrop(event) {
+  if (event.target.id === "savedModal") closeSavedModal();
+}
+
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape") closeSavedModal();
+});
+
+function renderSaved() {
+  const saved = getSavedPapers();
+  const container = document.getElementById("savedList");
+  const count = document.getElementById("savedCount");
+  if (count) count.textContent = String(saved.length);
+  updateAllSaveButtons();
+
+  if (!saved.length) {
+    container.innerHTML =
+      '<div class="empty">저장한 논문이 없습니다.</div>';
+    return;
+  }
+
+  container.innerHTML = saved.map((paper, index) => `
+    <article class="result-card">
+
+      <div class="paper-title">
+        ${escapeHTML(paper.title || "제목 정보 없음")}
+      </div>
+
+      <div class="paper-meta">
+        ${escapeHTML(
+          (paper.authorships || [])
+            .slice(0, 5)
+            .map(item => item.author?.display_name || "")
+            .filter(Boolean)
+            .join(", ") || "저자 정보 없음"
+        )}
+        · ${escapeHTML(String(paper.publication_year || "연도 정보 없음"))}
+      </div>
+
+      <div class="card-actions">
+        <button class="small-btn" onclick="showSavedDetail(${index})">
+          상세 보기
+        </button>
+
+        <button class="small-btn" onclick="removeSaved(${index})">
+          저장 해제
+        </button>
+
+        ${getOriginalUrl(paper) ? `
+          <a class="small-btn"
+             href="${escapeHTML(getOriginalUrl(paper))}"
+             target="_blank"
+             rel="noopener noreferrer">
+            원문 사이트
+          </a>
+        ` : ""}
+      </div>
+
+    </article>
+  `).join("");
+}
+
+function showSavedDetail(index) {
+  const paper = getSavedPapers()[index];
+  if (!paper) return;
+  closeSavedModal();
+
+  currentDetail = {
+    ...paper,
+    _abstract: paper.abstract || ""
+  };
+
+  const originalUrl = getOriginalUrl(paper);
+
+  document.getElementById("detailSection").innerHTML = `
+    <div class="detail-panel">
+
+      <h2>저장한 논문 상세 정보</h2>
+
+      <h3>${escapeHTML(paper.title || "제목 정보 없음")}</h3>
+
+      <div class="paper-meta">
+        ${escapeHTML(
+          (paper.authorships || [])
+            .slice(0, 5)
+            .map(item => item.author?.display_name || "")
+            .filter(Boolean)
+            .join(", ") || "저자 정보 없음"
+        )}
+        · ${escapeHTML(String(paper.publication_year || "연도 정보 없음"))}
+      </div>
+
+      <div class="detail-actions">
+        <button class="small-btn" onclick="translateDetail()">
+          초록 번역
+        </button>
+
+        ${originalUrl ? `
+          <a class="small-btn"
+             href="${escapeHTML(originalUrl)}"
+             target="_blank"
+             rel="noopener noreferrer">
+            원문 사이트
+          </a>
+        ` : ""}
+      </div>
+
+      <h3>초록</h3>
+
+      <div class="detail-text">
+        ${escapeHTML(paper.abstract || "초록 정보가 없습니다.")}
+      </div>
+
+      <div id="detailTranslation"></div>
+
+    </div>
+  `;
+
+  document.getElementById("detailSection").scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
+function removeSaved(index) {
+  const saved = getSavedPapers();
+
+  saved.splice(index, 1);
+
+  localStorage.setItem(
+    "damoaSavedPapers",
+    JSON.stringify(saved)
+  );
+
+  renderSaved();
+}
+
+renderSaved();
+updateSelectedCount();
+updateLanguageSummary();
+
+</script>
+
+</body>
+</html>
