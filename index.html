@@ -2003,6 +2003,16 @@ async function requestPaperAI(mode, sourcePapers, clickedButton) {
     return;
   }
 
+  const papersWithAbstract = chosen.filter(paper => cleanAbstractText(paper._abstract || paper.abstract || ""));
+  if (mode === "translate" && !papersWithAbstract.length) {
+    setAIStatus("번역할 초록이 없습니다. 초록이 제공되는 논문을 선택해 주세요.", true);
+    return;
+  }
+  if (mode === "compare" && papersWithAbstract.length < 2) {
+    setAIStatus("키워드와 관점을 비교하려면 초록이 있는 논문을 2편 이상 선택해 주세요.", true);
+    return;
+  }
+
   const target = document.getElementById("translationLanguageSelect").value;
   const prompt = mode === "translate"
     ? `아래 학술논문의 초록을 ${LANGUAGE_NAMES[target] || target}로 정확하고 자연스럽게 번역해 주세요. 요약하거나 내용을 추가하지 말고 원문의 문장 구조와 의미를 최대한 보존하세요. 학술 용어는 문맥에 맞게 번역하고, 제목과 번역문을 구분해 표시하세요.`
@@ -2020,7 +2030,7 @@ async function requestPaperAI(mode, sourcePapers, clickedButton) {
   if (clickedButton) clickedButton.textContent = mode === "translate" ? "AI 번역 중..." : "AI 비교 중...";
   const label = document.getElementById("aiResultLabel");
   const output = document.getElementById("aiOutput");
-  label.textContent = "실제 AI 요청 처리 중";
+  label.textContent = "서버 연결 확인 중 · 실제 AI 응답 전";
   output.textContent = "선택한 논문 자료를 서버로 전달하고 있습니다.";
   setAIStatus("AI 응답을 기다리는 중입니다.");
 
