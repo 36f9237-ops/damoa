@@ -1,0 +1,28 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "",
+  "installCommand": "",
+  "outputDirectory": ".",
+  "functions": {
+    "api/chat.js": { "maxDuration": 30 }
+  },
+  "routes": [
+    {
+      "src": "/.*",
+      "headers": {
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "no-referrer",
+        "X-Frame-Options": "DENY",
+        "Cache-Control": "no-store"
+      },
+      "continue": true
+    },
+    { "src": "/(?:.*[/])?\\.[^/]*(?:/.*)?$", "status": 404 },
+    { "src": "/(?:server|node_modules)(?:/.*)?$", "status": 404 },
+    { "src": "/(?:README\\.md|package(?:-lock)?\\.json|vercel\\.json)$", "status": 404 },
+    { "handle": "filesystem" },
+    { "src": "/", "dest": "/index.html" },
+    { "src": "/.*", "status": 404 }
+  ]
+}
