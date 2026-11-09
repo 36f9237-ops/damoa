@@ -1,5 +1,3 @@
-import { createHash, timingSafeEqual } from 'node:crypto';
-
 export const LIMITS = Object.freeze({
   bodyBytes: 40000,
   messages: 7,
@@ -39,7 +37,6 @@ function configuredValue(value) {
 function configFrom(env) {
   const provider = env.AI_PROVIDER?.trim();
   const model = env.AI_MODEL?.trim();
-  const accessCode = env.CHAT_ACCESS_CODE;
   const apiKey = provider === 'openai' ? env.OPENAI_API_KEY?.trim() : env.ANTHROPIC_API_KEY?.trim();
   const maxTokens = env.MAX_OUTPUT_TOKENS === undefined || env.MAX_OUTPUT_TOKENS === '' ? 800 : Number(env.MAX_OUTPUT_TOKENS);
   const workspace = env.ANTHROPIC_WORKSPACE_ID?.trim();
@@ -47,18 +44,12 @@ function configFrom(env) {
   if (!['openai', 'anthropic'].includes(provider) ||
       !configuredValue(model) || !/^[a-zA-Z0-9_.:/-]{1,120}$/.test(model) ||
       !configuredValue(apiKey) || !/^[\x21-\x7e]{8,512}$/.test(apiKey) ||
-      !configuredValue(accessCode) || !/^[a-zA-Z0-9_-]{16,128}$/.test(accessCode) ||
       !Number.isInteger(maxTokens) || maxTokens < 128 || maxTokens > 5000 ||
       instructions.length > 4000 ||
       (workspace && !/^wrkspc_[a-zA-Z0-9]{1,100}$/.test(workspace))) {
     throw new HttpError(503, 'SERVER_SETUP', '앱 운영자가 서버의 AI 연결 설정을 확인해야 합니다.');
   }
-  return { provider, model, accessCode, apiKey, maxTokens, workspace, instructions };
-}
-
-function sameSecret(actual, expected) {
-  const digest = (value) => createHash('sha256').update(value).digest();
-  return timingSafeEqual(digest(actual), digest(expected));
+  return { provider, model, apiKey, maxTokens, workspace, instructions };
 }
 
 function checkOrigin(request) {
@@ -163,11 +154,6 @@ export function createChatHandler({ env = process.env, fetchImpl = globalThis.fe
       if (request.method !== 'POST') return reply(405, { error: { code: 'METHOD', message: '질문 전송 버튼으로 요청해 주세요.' } });
       checkOrigin(request);
       const config = configFrom(env);
-      const authorization = request.headers.get('authorization') || '';
-      const supplied = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
-      if (!/^[a-zA-Z0-9_-]{16,128}$/.test(supplied) || !sameSecret(supplied, config.accessCode)) {
-        throw new HttpError(401, 'ACCESS_CODE', '이용 코드를 확인해 주세요.');
-      }
       if (!/^application\/json(?:\s*;|$)/i.test(request.headers.get('content-type') || '')) {
         throw new HttpError(415, 'CONTENT_TYPE', '질문을 JSON 형식으로 보내 주세요.');
       }
