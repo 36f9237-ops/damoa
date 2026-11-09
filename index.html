@@ -2046,7 +2046,7 @@ async function requestPaperAI(mode, sourcePapers, clickedButton) {
   setAIStatus("AI 응답을 기다리는 중입니다.");
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 35000);
+  const timer = setTimeout(() => controller.abort(), 55000);
   try {
     const response = await fetch("/api/chat", {
       method: "POST",
