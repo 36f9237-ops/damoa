@@ -836,14 +836,7 @@ th {
   <section class="ai-panel" id="aiPanel" aria-labelledby="aiPanelTitle">
     <h2 id="aiPanelTitle">AI 논문 분석</h2>
     <p class="ai-intro">논문 상세 화면에서는 초록을 번역하고, 비교 화면에서는 선택한 논문의 핵심 키워드·연구 관점·연구 방향을 비교합니다. 분석에 필요한 논문 정보와 초록이 AI 서비스로 전송됩니다.</p>
-    <details class="ai-access-settings" id="aiAccessSettings">
-      <summary>AI 이용 코드 설정</summary>
-      <div class="ai-code-field">
-        <label for="aiAccessCode">앱 이용 코드</label>
-        <input id="aiAccessCode" type="password" minlength="16" maxlength="128" pattern="[A-Za-z0-9_-]{16,128}" autocomplete="off" spellcheck="false" placeholder="운영자가 안내한 이용 코드">
-        <p class="ai-code-help">이용 코드는 현재 브라우저 탭에만 저장됩니다. API 비밀키는 서버에만 보관됩니다.</p>
-      </div>
-    </details>
+    <p class="ai-access-note">AI 번역과 논문 비교는 누구나 이용할 수 있습니다.</p>
     <div class="ai-state" id="aiResultLabel">예시 답변 · 실제 AI 연결 전</div>
     <div class="ai-output" id="aiOutput" role="region" aria-live="polite">서버 환경변수 설정과 배포가 완료되면 실제 AI 결과가 이곳에 표시됩니다. 현재는 실제 AI 응답이 연결되지 않은 상태입니다.</div>
     <p class="ai-status" id="aiStatus" role="status" aria-live="polite"></p>
@@ -1967,19 +1960,6 @@ async function requestPaperAI(mode, sourcePapers, clickedButton) {
     setAIStatus("분석할 논문 자료가 없습니다. 논문을 먼저 열거나 선택해 주세요.", true);
     return;
   }
-  const accessInput = document.getElementById("aiAccessCode");
-  let accessCode = accessInput.value.trim();
-  if (!accessCode) {
-    try { accessCode = sessionStorage.getItem("damoa_ai_access_code") || ""; } catch {}
-  }
-  if (!/^[A-Za-z0-9_-]{16,128}$/.test(accessCode)) {
-    const settings = document.getElementById("aiAccessSettings");
-    if (settings) settings.open = true;
-    setAIStatus("먼저 'AI 이용 코드 설정'에서 앱 이용 코드를 입력해 주세요.", true);
-    accessInput.focus();
-    return;
-  }
-  accessInput.value = accessCode;
   if (location.protocol !== "https:" && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
     setAIStatus("서버 기능이 배포된 HTTPS 앱 주소에서 실행해 주세요.", true);
     return;
@@ -2023,7 +2003,6 @@ async function requestPaperAI(mode, sourcePapers, clickedButton) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer " + accessCode
       },
       body: JSON.stringify({
         messages: [{ role: "user", content: prompt }],
@@ -2088,17 +2067,6 @@ function runAIForSelected(button) {
   requestPaperAI("compare", selectedPapers, button);
 }
 
-
-const aiAccessCodeInput = document.getElementById("aiAccessCode");
-try {
-  aiAccessCodeInput.value = sessionStorage.getItem("damoa_ai_access_code") || "";
-} catch {}
-aiAccessCodeInput.addEventListener("input", () => {
-  try {
-    if (aiAccessCodeInput.value) sessionStorage.setItem("damoa_ai_access_code", aiAccessCodeInput.value.trim());
-    else sessionStorage.removeItem("damoa_ai_access_code");
-  } catch {}
-});
 
 renderSaved();
 updateSelectedCount();
