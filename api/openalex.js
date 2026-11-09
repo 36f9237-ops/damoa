@@ -4,7 +4,7 @@ const ALLOWED_SELECT = new Set([
   'primary_location', 'locations', 'abstract_inverted_index', 'type',
   'open_access', 'best_oa_location', 'language', 'ids'
 ]);
-const ALLOWED_FILTERS = /^(?:from_publication_date:\\d{4}-\\d{2}-\\d{2}|to_publication_date:\\d{4}-\\d{2}-\\d{2}|language:[a-z|]+|is_oa:true)$/;
+const ALLOWED_FILTERS = /^(?:from_publication_date:\d{4}-\d{2}-\d{2}|to_publication_date:\d{4}-\d{2}-\d{2}|language:[a-z|]+|is_oa:true)$/;
 
 function json(status, body) {
   return Response.json(body, {
@@ -24,7 +24,7 @@ export async function GET(request) {
     }
 
     const apiKey = process.env.OPENALEX_API_KEY?.trim();
-    if (!apiKey || !/^[\\x21-\\x7e]{8,512}$/.test(apiKey)) {
+    if (!apiKey || !/^[\x21-\x7e]{8,512}$/.test(apiKey)) {
       return json(503, { error: 'OpenAlex 서버 키 설정을 확인해 주세요.' });
     }
 
