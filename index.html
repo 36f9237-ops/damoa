@@ -837,11 +837,8 @@ th {
 
 <script>
 
-/* OpenAlex API 키가 필요한 경우 직접 입력하세요.
-   웹사이트를 공개하면 브라우저에서 키가 노출될 수 있습니다. */
-const OPENALEX_API_KEY = "";
-
-const OPENALEX_URL = "https://api.openalex.org/works";
+/* OpenAlex requests use the Vercel server proxy; the API key stays server-side. */
+const OPENALEX_URL = "/api/openalex";
 
 const LANGUAGE_NAMES = {
   ko: "한국어",
@@ -1242,14 +1239,6 @@ async function searchPapers() {
           "ids"
         ].join(",")
       });
-
-      if (OPENALEX_API_KEY) {
-        params.set("api_key", OPENALEX_API_KEY);
-      }
-
-      if (filterParts.length) {
-        params.set("filter", filterParts.join(","));
-      }
 
       const response = await fetch(
         `${OPENALEX_URL}?${params.toString()}`
