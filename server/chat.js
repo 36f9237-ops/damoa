@@ -48,7 +48,7 @@ function configFrom(env) {
       !configuredValue(model) || !/^[a-zA-Z0-9_.:/-]{1,120}$/.test(model) ||
       !configuredValue(apiKey) || !/^[\x21-\x7e]{8,512}$/.test(apiKey) ||
       !configuredValue(accessCode) || !/^[a-zA-Z0-9_-]{16,128}$/.test(accessCode) ||
-      !Number.isInteger(maxTokens) || maxTokens < 128 || maxTokens > 1600 ||
+      !Number.isInteger(maxTokens) || maxTokens < 128 || maxTokens > 5000 ||
       instructions.length > 4000 ||
       (workspace && !/^wrkspc_[a-zA-Z0-9]{1,100}$/.test(workspace))) {
     throw new HttpError(503, 'SERVER_SETUP', '앱 운영자가 서버의 AI 연결 설정을 확인해야 합니다.');
